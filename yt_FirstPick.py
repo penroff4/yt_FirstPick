@@ -15,7 +15,7 @@ import requests
 import bs4
 import urllib.error
 import argparse
-
+from time import gmtime, strftime
 
 # ================================__main__=====================================
 
@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     # Here we go!
     try:
-        print("Searching")
+        print("{} || Searching".format(strftime("%H:%M:%S")))
 
         # Grab HTML from YouTube search results page
         res = requests.get(
@@ -60,16 +60,21 @@ if __name__ == "__main__":
         soup = bs4.BeautifulSoup(res.text, "html.parser")
         linkElems = soup.select('.yt-lockup-title a')
 
-        print("Try this one...")
+        print("{} || Try this one...".format(strftime("%H:%M:%S")))
 
         # Open Chrome to the first search result
         webbrowser.open('https://www.youtube.com' +
                         linkElems[yt_result_number].get('href'))
 
+        # Go through the video page HTML to find the song name
+        res = requests.get('https://www.youtube.com' +
+                        linkElems[yt_result_number].get('href'))
+        soup = bs4.BeautifulSoup(res.text, "html.parser")
+        song_name = soup.select('.watch-title')[0].text.replace('\n', '').strip()
+
+        # Let me know what I'm listening to!
+        print("{} || Now playing \'{}\'".format(strftime("%H:%M:%S"), song_name))
+
     # If YouTube isn't responding, quit and tell user
     except urllib.error.HTTPError as e:
         print("An HTTP error %d occurred:\n%s" % (e.resp.status, e.content))
-
-    # Otherwise, report success!
-    else:
-        print("All done here!")
