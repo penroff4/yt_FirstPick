@@ -41,9 +41,9 @@ if __name__ == "__main__":
 
     # Set chosen search result from cmd line or to 1 by default
     if not args.number:
-        yt_result_number = 1
+        yt_result_number = 0
     else:
-        yt_result_number = int(args.number.strip())
+        yt_result_number = int(args.number.strip()) - 1
 
     # Here we go!
     try:
