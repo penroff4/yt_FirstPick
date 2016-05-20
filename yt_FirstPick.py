@@ -16,20 +16,29 @@ import bs4
 import urllib.error
 import argparse
 import csv
-from time import gmtime, strftime
+import os.path
+from time import strftime
 
 
-first_picks_csv = 'FirstPicks.csv'
+first_picks_csv = 'yt_FirstPick_stats.csv'
 
 
 def csv_writer(path, data):
     # Method to record data to csv
 
-    with open(path, 'w', newline='') as csv_file:
-        writer = csv.writer(csv_file, delimiter=',')
+    if os.path.isfile(first_picks_csv):
+        with open(path, 'a', newline='') as csv_file:
+            writer = csv.writer(csv_file, delimiter=',')
 
-        for line in data:
-            writer.writerow(line)
+            for line in data:
+                writer.writerow(line)
+
+    else:
+        with open(path, 'w', newline='') as csv_file:
+            writer = csv.writer(csv_file, delimiter=',')
+
+            for line in data:
+                writer.writerow(line)
 
 # ================================__main__=====================================
 
@@ -109,13 +118,15 @@ if __name__ == "__main__":
         res = requests.get('https://www.youtube.com' +
                         linkElems[yt_result_number].get('href'))
         soup = bs4.BeautifulSoup(res.text, "html.parser")
-        song_name = soup.select('.watch-title')[0].text.replace('\n', '').strip()
+        song_name = soup.select(
+            '.watch-title')[0].text.replace('\n', '').strip()
 
         # Let me know what I'm listening to!
-        print("{} || Now playing \'{}\'".format(strftime("%H:%M:%S"), song_name))
+        print("{} || Now playing \'{}\'"
+              .format(strftime("%H:%M:%S"), song_name))
 
         now_playing_action = {"id": record_id,
-                              "date": strftime("%Y%m%d"),
+                              "date": strftime("%Y:%m:%d"),
                               "time": strftime("%H:%M:%S"),
                               "action": "Now Playing",
                               "result_url": returned_result,
@@ -154,7 +165,7 @@ if __name__ == "__main__":
         transaction_data = [initial_search_action_data, try_this_action_data,
                             now_playing_action_data]
 
-        csv_writer('yt_FirstPick_stats.csv', transaction_data)
+        csv_writer(first_picks_csv, transaction_data)
 
     # If YouTube isn't responding, quit and tell user
     except urllib.error.HTTPError as e:
