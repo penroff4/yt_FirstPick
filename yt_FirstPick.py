@@ -142,6 +142,20 @@ if __name__ == "__main__":
                                 try_this_action["result_number"],
                                 try_this_action["video_name"]]
 
+        now_playing_action_data = [now_playing_action["id"],
+                                   now_playing_action["date"],
+                                   now_playing_action["time"],
+                                   now_playing_action["action"],
+                                   now_playing_action["result_url"],
+                                   now_playing_action["search_term"],
+                                   now_playing_action["result_number"],
+                                   now_playing_action["video_name"]]
+
+        transaction_data = [initial_search_action_data, try_this_action_data,
+                            now_playing_action_data]
+
+        csv_writer('yt_FirstPick_stats.csv', transaction_data)
+
     # If YouTube isn't responding, quit and tell user
     except urllib.error.HTTPError as e:
         print("An HTTP error %d occurred:\n%s" % (e.resp.status, e.content))
