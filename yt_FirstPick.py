@@ -15,7 +15,21 @@ import requests
 import bs4
 import urllib.error
 import argparse
+import csv
 from time import gmtime, strftime
+
+
+first_picks_csv = 'FirstPicks.csv'
+
+
+def csv_writer(path, data):
+    # Method to record data to csv
+
+    with open(path, 'w', newline='') as csv_file:
+        writer = csv.writer(csv_file, delimiter=',')
+
+        for line in data:
+            writer.writerow(line)
 
 # ================================__main__=====================================
 
@@ -45,9 +59,22 @@ if __name__ == "__main__":
     else:
         yt_result_number = int(args.number.strip()) - 1
 
+    # Set record ID for search transaction based on Date and Time of initiation
+    record_id = int(strftime("%Y%m%d%H%M%S"))
+
     # Here we go!
     try:
-        print("{} || Searching".format(strftime("%H:%M:%S")))
+        print("\n{} || Searching".format(strftime("%H:%M:%S")))
+
+        # Set up 'Initial Search' record
+        initial_search_action = {"id": record_id,
+                                 "date": strftime("%Y:%m:%d"),
+                                 "time": strftime("%H:%M:%S"),
+                                 "action": "Initial Search",
+                                 "result_url": "",
+                                 "search_term": yt_search_string,
+                                 "result_number": yt_result_number,
+                                 "video_name": ""}
 
         # Grab HTML from YouTube search results page
         res = requests.get(
@@ -63,8 +90,20 @@ if __name__ == "__main__":
         print("{} || Try this one...".format(strftime("%H:%M:%S")))
 
         # Open Chrome to the first search result
-        webbrowser.open('https://www.youtube.com' +
-                        linkElems[yt_result_number].get('href'))
+        returned_result = 'https://www.youtube.com' + \
+                          linkElems[yt_result_number].get('href')
+
+        webbrowser.open(returned_result)
+
+        # Set up 'Initial Search' record
+        try_this_action = {"id": record_id,
+                           "date": strftime("%Y:%m:%d"),
+                           "time": strftime("%H:%M:%S"),
+                           "action": "Try This",
+                           "result_url": returned_result,
+                           "search_term": yt_search_string,
+                           "result_number": yt_result_number,
+                           "video_name": ""}
 
         # Go through the video page HTML to find the song name
         res = requests.get('https://www.youtube.com' +
@@ -74,6 +113,34 @@ if __name__ == "__main__":
 
         # Let me know what I'm listening to!
         print("{} || Now playing \'{}\'".format(strftime("%H:%M:%S"), song_name))
+
+        now_playing_action = {"id": record_id,
+                              "date": strftime("%Y%m%d"),
+                              "time": strftime("%H:%M:%S"),
+                              "action": "Now Playing",
+                              "result_url": returned_result,
+                              "search_term": yt_search_string,
+                              "result_number": yt_result_number,
+                              "video_name": song_name}
+
+        # Write all actions to csv
+        initial_search_action_data = [initial_search_action["id"],
+                                      initial_search_action["date"],
+                                      initial_search_action["time"],
+                                      initial_search_action["action"],
+                                      initial_search_action["result_url"],
+                                      initial_search_action["search_term"],
+                                      initial_search_action["result_number"],
+                                      initial_search_action["video_name"]]
+
+        try_this_action_data = [try_this_action["id"],
+                                try_this_action["date"],
+                                try_this_action["time"],
+                                try_this_action["action"],
+                                try_this_action["result_url"],
+                                try_this_action["search_term"],
+                                try_this_action["result_number"],
+                                try_this_action["video_name"]]
 
     # If YouTube isn't responding, quit and tell user
     except urllib.error.HTTPError as e:
