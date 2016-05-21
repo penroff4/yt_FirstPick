@@ -4,10 +4,8 @@
 
 """
 Usage example:
-
 python3 youtube_search.py
     -s or --search_string = '<string>'
-
 """
 
 import webbrowser
@@ -20,7 +18,7 @@ import os.path
 from time import strftime
 
 
-first_picks_csv = 'yt_FirstPick_stats.csv'
+first_picks_csv = 'scripts/yt_FirstPick_stats.csv'
 
 
 def csv_writer(path, data):
@@ -39,6 +37,220 @@ def csv_writer(path, data):
 
             for line in data:
                 writer.writerow(line)
+
+
+def new_first_pick(search_string, result_number):
+
+    # Set record ID for search transaction based on Date and Time of initiation
+    record_id = int(strftime("%Y%m%d%H%M%S"))
+
+    # Make search string url friendly, replace spaces with + symbol
+    yt_search_string = str.replace(search_string, ' ', '+')
+
+    # Set chosen search result from cmd line or to 1 by default
+    if not result_number:
+        yt_result_number = 0
+    else:
+        yt_result_number = int(result_number.strip()) - 1
+
+    print("\n{} || Searching".format(strftime("%H:%M:%S")))
+
+    # Set up 'Initial Search' record
+    initial_search_action = {"id": record_id,
+                             "date": strftime("%Y:%m:%d"),
+                             "time": strftime("%H:%M:%S"),
+                             "action": "Initial Search",
+                             "result_url": "",
+                             "search_term": yt_search_string,
+                             "result_number": yt_result_number,
+                             "video_name": ""}
+
+    # Grab HTML from YouTube search results page
+    res = requests.get(
+        'https://www.youtube.com/results?search_query={}'.format(
+            yt_search_string))
+    # Make sure our request was successful
+    res.raise_for_status()
+
+    # Use BeautifulSoup to find URL of first search result in HTML
+    soup = bs4.BeautifulSoup(res.text, "html.parser")
+    link_elems = soup.select('.yt-lockup-title a')
+
+    print("{} || Try this one...".format(strftime("%H:%M:%S")))
+
+    # Open Chrome to the first search result
+    returned_result = 'https://www.youtube.com' + \
+                      link_elems[yt_result_number].get('href')
+
+    webbrowser.open(returned_result)
+
+    # Set up 'Initial Search' record
+    try_this_action = {"id": record_id,
+                       "date": strftime("%Y:%m:%d"),
+                       "time": strftime("%H:%M:%S"),
+                       "action": "Try This",
+                       "result_url": returned_result,
+                       "search_term": yt_search_string,
+                       "result_number": yt_result_number,
+                       "video_name": ""}
+
+    # Go through the video page HTML to find the song name
+    res = requests.get('https://www.youtube.com' +
+                       link_elems[yt_result_number].get('href'))
+    soup = bs4.BeautifulSoup(res.text, "html.parser")
+    song_name = soup.select(
+        '.watch-title')[0].text.replace('\n', '').strip()
+
+    # Let me know what I'm listening to!
+    print("{} || Now playing \'{}\'"
+          .format(strftime("%H:%M:%S"), song_name))
+
+    now_playing_action = {"id": record_id,
+                          "date": strftime("%Y:%m:%d"),
+                          "time": strftime("%H:%M:%S"),
+                          "action": "Now Playing",
+                          "result_url": returned_result,
+                          "search_term": yt_search_string,
+                          "result_number": yt_result_number,
+                          "video_name": song_name}
+
+    # Write all actions to csv
+    initial_search_action_data = [initial_search_action["id"],
+                                  initial_search_action["date"],
+                                  initial_search_action["time"],
+                                  initial_search_action["action"],
+                                  initial_search_action["result_url"],
+                                  initial_search_action["search_term"],
+                                  initial_search_action["result_number"],
+                                  initial_search_action["video_name"]]
+
+    try_this_action_data = [try_this_action["id"],
+                            try_this_action["date"],
+                            try_this_action["time"],
+                            try_this_action["action"],
+                            try_this_action["result_url"],
+                            try_this_action["search_term"],
+                            try_this_action["result_number"],
+                            try_this_action["video_name"]]
+
+    now_playing_action_data = [now_playing_action["id"],
+                               now_playing_action["date"],
+                               now_playing_action["time"],
+                               now_playing_action["action"],
+                               now_playing_action["result_url"],
+                               now_playing_action["search_term"],
+                               now_playing_action["result_number"],
+                               now_playing_action["video_name"]]
+
+    transaction_data = [initial_search_action_data, try_this_action_data,
+                        now_playing_action_data]
+
+    csv_writer(first_picks_csv, transaction_data)
+
+
+def next_song_writer():
+    # Set record ID for search transaction based on Date and Time of initiation
+    record_id = int(strftime("%Y%m%d%H%M%S"))
+
+    res = requests.get()
+
+    print("\n{} || Searching".format(strftime("%H:%M:%S")))
+
+    # Set up 'Initial Search' record
+    initial_search_action = {"id": record_id,
+                             "date": strftime("%Y:%m:%d"),
+                             "time": strftime("%H:%M:%S"),
+                             "action": "Initial Search",
+                             "result_url": "",
+                             "search_term": yt_search_string,
+                             "result_number": yt_result_number,
+                             "video_name": ""}
+
+    # Grab HTML from YouTube search results page
+    res = requests.get(
+        'https://www.youtube.com/results?search_query={}'.format(
+            yt_search_string))
+    # Make sure our request was successful
+    res.raise_for_status()
+
+    # Use BeautifulSoup to find URL of first search result in HTML
+    soup = bs4.BeautifulSoup(res.text, "html.parser")
+    link_elems = soup.select('.yt-lockup-title a')
+
+    print("{} || Try this one...".format(strftime("%H:%M:%S")))
+
+    # Open Chrome to the first search result
+    returned_result = 'https://www.youtube.com' + \
+                      link_elems[yt_result_number].get('href')
+
+    webbrowser.open(returned_result)
+
+    # Set up 'Initial Search' record
+    try_this_action = {"id": record_id,
+                       "date": strftime("%Y:%m:%d"),
+                       "time": strftime("%H:%M:%S"),
+                       "action": "Try This",
+                       "result_url": returned_result,
+                       "search_term": yt_search_string,
+                       "result_number": yt_result_number,
+                       "video_name": ""}
+
+    # Go through the video page HTML to find the song name
+    res = requests.get('https://www.youtube.com' +
+                       link_elems[yt_result_number].get('href'))
+    soup = bs4.BeautifulSoup(res.text, "html.parser")
+    song_name = soup.select(
+        '.watch-title')[0].text.replace('\n', '').strip()
+
+    # Let me know what I'm listening to!
+    print("{} || Now playing \'{}\'"
+          .format(strftime("%H:%M:%S"), song_name))
+
+    now_playing_action = {"id": record_id,
+                          "date": strftime("%Y:%m:%d"),
+                          "time": strftime("%H:%M:%S"),
+                          "action": "Now Playing",
+                          "result_url": returned_result,
+                          "search_term": yt_search_string,
+                          "result_number": yt_result_number,
+                          "video_name": song_name}
+
+    # Write all actions to csv
+    initial_search_action_data = [initial_search_action["id"],
+                                  initial_search_action["date"],
+                                  initial_search_action["time"],
+                                  initial_search_action["action"],
+                                  initial_search_action["result_url"],
+                                  initial_search_action["search_term"],
+                                  initial_search_action["result_number"],
+                                  initial_search_action["video_name"]]
+
+    try_this_action_data = [try_this_action["id"],
+                            try_this_action["date"],
+                            try_this_action["time"],
+                            try_this_action["action"],
+                            try_this_action["result_url"],
+                            try_this_action["search_term"],
+                            try_this_action["result_number"],
+                            try_this_action["video_name"]]
+
+    now_playing_action_data = [now_playing_action["id"],
+                               now_playing_action["date"],
+                               now_playing_action["time"],
+                               now_playing_action["action"],
+                               now_playing_action["result_url"],
+                               now_playing_action["search_term"],
+                               now_playing_action["result_number"],
+                               now_playing_action["video_name"]]
+
+    transaction_data = [initial_search_action_data, try_this_action_data,
+                        now_playing_action_data]
+
+    csv_writer(first_picks_csv, transaction_data)
+
+
+def next_song_checker():
+
 
 # ================================__main__=====================================
 
@@ -59,113 +271,10 @@ if __name__ == "__main__":
     if not args.search_string:
         exit("Please specify a search string!")
 
-    # Make search string url friendly, replace spaces with + symbol
-    yt_search_string = str.replace(args.search_string, ' ', '+')
-
-    # Set chosen search result from cmd line or to 1 by default
-    if not args.number:
-        yt_result_number = 0
-    else:
-        yt_result_number = int(args.number.strip()) - 1
-
-    # Set record ID for search transaction based on Date and Time of initiation
-    record_id = int(strftime("%Y%m%d%H%M%S"))
-
     # Here we go!
     try:
-        print("\n{} || Searching".format(strftime("%H:%M:%S")))
 
-        # Set up 'Initial Search' record
-        initial_search_action = {"id": record_id,
-                                 "date": strftime("%Y:%m:%d"),
-                                 "time": strftime("%H:%M:%S"),
-                                 "action": "Initial Search",
-                                 "result_url": "",
-                                 "search_term": yt_search_string,
-                                 "result_number": yt_result_number,
-                                 "video_name": ""}
-
-        # Grab HTML from YouTube search results page
-        res = requests.get(
-            'https://www.youtube.com/results?search_query={}'.format(
-                yt_search_string))
-        # Make sure our request was successful
-        res.raise_for_status()
-
-        # Use BeautifulSoup to find URL of first search result in HTML
-        soup = bs4.BeautifulSoup(res.text, "html.parser")
-        linkElems = soup.select('.yt-lockup-title a')
-
-        print("{} || Try this one...".format(strftime("%H:%M:%S")))
-
-        # Open Chrome to the first search result
-        returned_result = 'https://www.youtube.com' + \
-                          linkElems[yt_result_number].get('href')
-
-        webbrowser.open(returned_result)
-
-        # Set up 'Initial Search' record
-        try_this_action = {"id": record_id,
-                           "date": strftime("%Y:%m:%d"),
-                           "time": strftime("%H:%M:%S"),
-                           "action": "Try This",
-                           "result_url": returned_result,
-                           "search_term": yt_search_string,
-                           "result_number": yt_result_number,
-                           "video_name": ""}
-
-        # Go through the video page HTML to find the song name
-        res = requests.get('https://www.youtube.com' +
-                        linkElems[yt_result_number].get('href'))
-        soup = bs4.BeautifulSoup(res.text, "html.parser")
-        song_name = soup.select(
-            '.watch-title')[0].text.replace('\n', '').strip()
-
-        # Let me know what I'm listening to!
-        print("{} || Now playing \'{}\'"
-              .format(strftime("%H:%M:%S"), song_name))
-
-        now_playing_action = {"id": record_id,
-                              "date": strftime("%Y:%m:%d"),
-                              "time": strftime("%H:%M:%S"),
-                              "action": "Now Playing",
-                              "result_url": returned_result,
-                              "search_term": yt_search_string,
-                              "result_number": yt_result_number,
-                              "video_name": song_name}
-
-        # Write all actions to csv
-        initial_search_action_data = [initial_search_action["id"],
-                                      initial_search_action["date"],
-                                      initial_search_action["time"],
-                                      initial_search_action["action"],
-                                      initial_search_action["result_url"],
-                                      initial_search_action["search_term"],
-                                      initial_search_action["result_number"],
-                                      initial_search_action["video_name"]]
-
-        try_this_action_data = [try_this_action["id"],
-                                try_this_action["date"],
-                                try_this_action["time"],
-                                try_this_action["action"],
-                                try_this_action["result_url"],
-                                try_this_action["search_term"],
-                                try_this_action["result_number"],
-                                try_this_action["video_name"]]
-
-        now_playing_action_data = [now_playing_action["id"],
-                                   now_playing_action["date"],
-                                   now_playing_action["time"],
-                                   now_playing_action["action"],
-                                   now_playing_action["result_url"],
-                                   now_playing_action["search_term"],
-                                   now_playing_action["result_number"],
-                                   now_playing_action["video_name"]]
-
-        transaction_data = [initial_search_action_data, try_this_action_data,
-                            now_playing_action_data]
-
-        csv_writer(first_picks_csv, transaction_data)
+        new_first_pick(args.search_string, args.number)
 
     # If YouTube isn't responding, quit and tell user
     except urllib.error.HTTPError as e:
