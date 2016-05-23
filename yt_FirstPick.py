@@ -54,7 +54,7 @@ def csv_writer(path, data):
 
 
 # Initialize the search, find YouTube result, and write the records
-def new_first_pick(search_string, result_number):
+def new_first_pick(search_string, yt_result_number):
 
     # Set record ID for search transaction based on Date and Time of initiation
     record_id = int(strftime("%Y%m%d%H%M%S"))
@@ -64,12 +64,6 @@ def new_first_pick(search_string, result_number):
 
     # Make search string url friendly, replace spaces with + symbol
     yt_search_string = str.replace(search_string, ' ', '+')
-
-    # Set chosen search result from cmd line or to 1 by default
-    if not result_number:
-        yt_result_number = 0
-    else:
-        yt_result_number = int(result_number.strip()) - 1
 
     print("\n{} || Searching".format(strftime("%H:%M:%S")))
 
@@ -262,6 +256,12 @@ if __name__ == "__main__":
     # Check that parameters were entered and are valid.  Quit if not.
     if not args.search_string:
         exit("Please specify a search string!")
+
+    # Set chosen search result from cmd line or to 1 by default
+    if not args.number:
+        args.number = 0
+    else:
+        args.number = int(args.number.strip()) - 1
 
     # Here we go!
     try:
