@@ -8,7 +8,6 @@ python3 youtube_search.py
     -s or --search_string = '<string>'
 """
 
-import webbrowser
 from time import sleep
 from selenium import webdriver
 import requests
@@ -16,14 +15,18 @@ import bs4
 import urllib.error
 import argparse
 import csv
-import os.path
-import signal
+import os
 from time import strftime
 
 
-first_picks_csv = 'scripts/yt_FirstPick_stats.csv'
+first_picks_csv = '/Users/penroff4/scripts/yt_FirstPick_stats.csv'
 
-browser = webdriver.Chrome()
+chrome_bin_path=\
+    "/Applications/Programs/Google Chrome.app/Contents/MacOS/Google Chrome"
+
+opts = webdriver.ChromeOptions()
+opts.binary_location = chrome_bin_path
+browser = webdriver.Chrome(chrome_options=opts)
 
 #######################################
 
@@ -32,7 +35,7 @@ browser = webdriver.Chrome()
 def csv_writer(path, data):
     # Method to record data to csv
 
-    if os.path.isfile(first_picks_csv):
+    if os.path.isfile(path):
         with open(path, 'a', newline='') as csv_file:
             writer = csv.writer(csv_file, delimiter=',')
 
@@ -57,7 +60,7 @@ def new_first_pick(search_string, result_number):
     record_id = int(strftime("%Y%m%d%H%M%S"))
 
     # Set session ID for session based on initial search record id
-    session_id = record_id
+    current_session_id = record_id
 
     # Make search string url friendly, replace spaces with + symbol
     yt_search_string = str.replace(search_string, ' ', '+')
@@ -72,7 +75,7 @@ def new_first_pick(search_string, result_number):
 
     # Set up 'Initial Search' record
     initial_search_action = {"id": record_id,
-                             "session_id": session_id,
+                             "session_id": current_session_id,
                              "date": strftime("%Y:%m:%d"),
                              "time": strftime("%H:%M:%S"),
                              "action": "Initial Search",
@@ -102,7 +105,7 @@ def new_first_pick(search_string, result_number):
 
     # Set up 'Initial Search' record
     try_this_action = {"id": record_id,
-                       "session_id": session_id,
+                       "session_id": current_session_id,
                        "date": strftime("%Y:%m:%d"),
                        "time": strftime("%H:%M:%S"),
                        "action": "Try This",
@@ -123,7 +126,7 @@ def new_first_pick(search_string, result_number):
           .format(strftime("%H:%M:%S"), song_name))
 
     now_playing_action = {"id": record_id,
-                          "session_id": session_id,
+                          "session_id": current_session_id,
                           "date": strftime("%Y:%m:%d"),
                           "time": strftime("%H:%M:%S"),
                           "action": "Now Playing",
@@ -168,14 +171,14 @@ def new_first_pick(search_string, result_number):
 
     csv_writer(first_picks_csv, transaction_data)
 
-    return session_id
+    return current_session_id
 
 
 #######################################
 
 
 # Record YouTube's auto play result
-def next_song_writer(session_id, search_term, result_number):
+def next_song_writer(current_session_id, search_term, result_number):
     # Set record ID for search transaction based on Date and Time of initiation
     record_id = int(strftime("%Y%m%d%H%M%S"))
 
@@ -196,7 +199,7 @@ def next_song_writer(session_id, search_term, result_number):
 
     # Set up 'Next Video' record
     next_video_action = {"id": record_id,
-                         "session_id": session_id,
+                         "session_id": current_session_id,
                          "date": strftime("%Y:%m:%d"),
                          "time": strftime("%H:%M:%S"),
                          "action": "Next Video",
@@ -225,20 +228,20 @@ def next_song_writer(session_id, search_term, result_number):
 
 
 # Check to see if YouTube's auto play has kicked in
-def next_song_checker(old_url, search_term, result_number, session_id):
+def next_song_checker(old_url, search_term, result_number, current_session_id):
 
     # Grab URL from current page
     current_url = browser.current_url
 
     # If the URL hasn't changed, wait and check again later
-    while current_url != old_url:
+    while current_url == old_url:
         # Pause...take a deep breath
         sleep(10)
         # Reset URL to current page
         current_url = browser.current_url
 
     # Once the URL has changed, write down the record
-    next_song_writer(session_id, search_term, result_number)
+    next_song_writer(current_session_id, search_term, result_number)
 
 
 # ================================__main__=====================================
