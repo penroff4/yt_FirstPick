@@ -56,11 +56,8 @@ def csv_writer(path, data):
 # Initialize the search, find YouTube result, and write the records
 def new_first_pick(search_string, yt_result_number):
 
-    # Set record ID for search transaction based on Date and Time of initiation
-    record_id = int(strftime("%Y%m%d%H%M%S"))
-
     # Set session ID for session based on initial search record id
-    current_session_id = record_id
+    current_session_id = int(strftime("%y%m%d%H%M%S"))
 
     # Make search string url friendly, replace spaces with + symbol
     yt_search_string = str.replace(search_string, ' ', '+')
@@ -68,9 +65,9 @@ def new_first_pick(search_string, yt_result_number):
     print("\n{} || Searching".format(strftime("%H:%M:%S")))
 
     # Set up 'Initial Search' record
-    initial_search_action = {"id": record_id,
+    initial_search_action = {"id": 1,
                              "session_id": current_session_id,
-                             "date": strftime("%Y:%m:%d"),
+                             "date": strftime("%y:%m:%d"),
                              "time": strftime("%H:%M:%S"),
                              "action": "Initial Search",
                              "result_url": "",
@@ -98,9 +95,9 @@ def new_first_pick(search_string, yt_result_number):
     browser.get(returned_result)
 
     # Set up 'Initial Search' record
-    try_this_action = {"id": record_id,
+    try_this_action = {"id": 2,
                        "session_id": current_session_id,
-                       "date": strftime("%Y:%m:%d"),
+                       "date": strftime("%y:%m:%d"),
                        "time": strftime("%H:%M:%S"),
                        "action": "Try This",
                        "result_url": returned_result,
@@ -119,9 +116,9 @@ def new_first_pick(search_string, yt_result_number):
     print("{} || Now playing \'{}\'"
           .format(strftime("%H:%M:%S"), song_name))
 
-    now_playing_action = {"id": record_id,
+    now_playing_action = {"id": 3,
                           "session_id": current_session_id,
-                          "date": strftime("%Y:%m:%d"),
+                          "date": strftime("%y:%m:%d"),
                           "time": strftime("%H:%M:%S"),
                           "action": "Now Playing",
                           "result_url": returned_result,
@@ -172,9 +169,8 @@ def new_first_pick(search_string, yt_result_number):
 
 
 # Record YouTube's auto play result
-def next_song_writer(current_session_id, search_term, result_number):
-    # Set record ID for search transaction based on Date and Time of initiation
-    record_id = int(strftime("%Y%m%d%H%M%S"))
+def next_song_writer(current_session_id, search_term, result_number,
+                     record_id):
 
     # Set video url
     video_url = browser.current_url
@@ -192,9 +188,9 @@ def next_song_writer(current_session_id, search_term, result_number):
           .format(strftime("%H:%M:%S"), video_name))
 
     # Set up 'Next Video' record
-    next_video_action = {"id": record_id,
+    next_video_action = {"id": record_id+3,
                          "session_id": current_session_id,
-                         "date": strftime("%Y:%m:%d"),
+                         "date": strftime("%y:%m:%d"),
                          "time": strftime("%H:%M:%S"),
                          "action": "Next Video",
                          "result_url": video_url,
@@ -222,7 +218,8 @@ def next_song_writer(current_session_id, search_term, result_number):
 
 
 # Check to see if YouTube's auto play has kicked in
-def next_song_checker(old_url, search_term, result_number, current_session_id):
+def next_song_checker(old_url, search_term, result_number, current_session_id,
+                      record_id):
 
     # Grab URL from current page
     current_url = browser.current_url
@@ -235,7 +232,7 @@ def next_song_checker(old_url, search_term, result_number, current_session_id):
         current_url = browser.current_url
 
     # Once the URL has changed, write down the record
-    next_song_writer(current_session_id, search_term, result_number)
+    next_song_writer(current_session_id, search_term, result_number, record_id)
 
 
 # ================================__main__=====================================
@@ -272,7 +269,7 @@ if __name__ == "__main__":
         # Check for a new song, and write records when it shows up
         for i in range(1, 99):
             next_song_checker(browser.current_url,
-                              args.search_string, args.number, session_id)
+                              args.search_string, args.number, session_id, i)
 
     # If YouTube isn't responding, quit and tell user
     except urllib.error.HTTPError as e:
