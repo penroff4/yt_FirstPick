@@ -18,12 +18,17 @@ import csv
 import os
 from time import strftime
 from threading import Thread
+import configparser
+
+config = configparser.ConfigParser()
+config.read('yt_FirstPick_Settings.ini')
 
 
-first_picks_csv = '/Users/penroff4/scripts/yt_FirstPick_stats.csv'
+first_picks_csv = config['app settings']['first_picks_history_csv']
 
-chrome_bin_path=\
-    "/Applications/Programs/Google Chrome.app/Contents/MacOS/Google Chrome"
+chrome_bin_path = config['app settings']['chromedriver_path']
+
+number_of_repeats = int(config['app settings']['number_of_songs'])
 
 opts = webdriver.ChromeOptions()
 opts.binary_location = chrome_bin_path
@@ -237,6 +242,12 @@ def next_song_checker(old_url, search_term, result_number, current_session_id,
     next_song_writer(current_session_id, search_term, result_number, record_id)
 
 
+def checking():
+    while True:
+        print("checking")
+        sleep(5)
+
+
 # ================================__main__=====================================
 
 if __name__ == "__main__":
@@ -269,9 +280,13 @@ if __name__ == "__main__":
         session_id = new_first_pick(args.search_string, args.number)
 
         # Check for a new song, and write records when it shows up
-        repeat_times =
+        t1 = Thread(target=next_song_checker, args=(browser.current_url,
+                    args.search_string, args.number, session_id, '1',
+                    number_of_repeats))
+        t2 = Thread(target=checking)
 
-        next_song_checker(browser.current_url, args.search_string, args.number, session_id, repeat_times)
+        t1.start()
+        t2.start()
 
     # If YouTube isn't responding, quit and tell user
     except urllib.error.HTTPError as e:
