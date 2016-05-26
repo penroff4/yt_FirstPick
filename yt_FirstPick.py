@@ -281,7 +281,7 @@ if __name__ == "__main__":
 
         # Check for a new song, and write records when it shows up
         t1 = Thread(target=next_song_checker, args=(browser.current_url,
-                    args.search_string, args.number, session_id, '1',
+                    args.search_string, args.number, session_id, 1,
                     number_of_repeats))
         t2 = Thread(target=checking)
 
