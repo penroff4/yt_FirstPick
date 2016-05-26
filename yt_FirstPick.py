@@ -19,6 +19,9 @@ import os
 from time import strftime
 from threading import Thread
 import configparser
+from prompt_toolkit import prompt
+from prompt_toolkit.styles import style_from_dict
+from prompt_toolkit.token import Token
 
 config = configparser.ConfigParser()
 config.read('yt_FirstPick_Settings.ini')
@@ -33,6 +36,17 @@ number_of_repeats = int(config['app settings']['number_of_songs'])
 opts = webdriver.ChromeOptions()
 opts.binary_location = chrome_bin_path
 browser = webdriver.Chrome(chrome_options=opts)
+
+style = style_from_dict({
+    Token.Toolbar: '#ffffff bg:#333333'
+})
+
+#######################################
+
+
+def get_bottom_toolbar_tokens(cli):
+    return [(Token.Toolbar, ' q - Quit  r - Previous Song  n - Next Song')]
+
 
 #######################################
 
@@ -173,6 +187,26 @@ def new_first_pick(search_string, yt_result_number):
 
 #######################################
 
+def current_song():
+
+    # Set video url
+    video_url = browser.current_url
+
+    # Instantiate YouTube video page request object
+    res = requests.get(video_url)
+
+    # Go through the video page HTML to find the song name
+    soup = bs4.BeautifulSoup(res.text, "html.parser")
+    video_name = soup.select(
+        '.watch-title')[0].text.replace('\n', '').strip()
+
+    # Let me know what I'm listening to!
+    print("{} || Now playing \'{}\'"
+          .format(strftime("%H:%M:%S"), video_name))
+
+
+#######################################
+
 
 # Record YouTube's auto play result
 def next_song_writer(current_session_id, search_term, result_number,
@@ -241,11 +275,42 @@ def next_song_checker(old_url, search_term, result_number, current_session_id,
     # Once the URL has changed, write down the record
     next_song_writer(current_session_id, search_term, result_number, record_id)
 
+#######################################
 
-def checking():
+
+def cmd_input():
     while True:
-        print("checking")
-        sleep(5)
+
+        user_input = prompt('> ',
+                            get_bottom_toolbar_tokens=get_bottom_toolbar_tokens
+                            , style=style)
+
+        if user_input == 'r':
+
+            print('Let\'s go back one song...')
+
+            # browser.execute_script("window.history.go(-1)")
+            browser.back()
+
+            current_song()
+
+        elif user_input == 'n':
+
+            print('Let\'s hear the next song...')
+
+            next_song = \
+                browser.find_element_by_xpath(
+                    '//*[@id="watch7-sidebar-modules"]/div[1]/div/div[2]/ul/li'
+                    '/div[1]/a/span[1]')
+
+            next_song.click()
+
+            current_song()
+
+        elif user_input == 'q':
+
+            browser.close()
+            exit("Quiting...")
 
 
 # ================================__main__=====================================
@@ -283,9 +348,9 @@ if __name__ == "__main__":
         t1 = Thread(target=next_song_checker, args=(browser.current_url,
                     args.search_string, args.number, session_id, 1,
                     number_of_repeats))
-        t2 = Thread(target=checking)
+        t2 = Thread(target=cmd_input)
 
-        t1.start()
+        # t1.start()
         t2.start()
 
     # If YouTube isn't responding, quit and tell user
