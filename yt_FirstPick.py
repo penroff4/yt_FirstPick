@@ -17,20 +17,212 @@ import argparse
 import csv
 import os
 from time import strftime
+import configparser
 
+###############################################################################
 
-first_picks_csv = '/Users/penroff4/scripts/yt_FirstPick_stats.csv'
+config = configparser.ConfigParser()
+config.read('yt_FirstPick_Settings.ini')
 
-chrome_bin_path=\
-    "/Applications/Programs/Google Chrome.app/Contents/MacOS/Google Chrome"
+first_picks_csv = config['app settings']['first_picks_history_csv']
+
+chrome_bin_path = config['app settings']['chromedriver_path']
 
 opts = webdriver.ChromeOptions()
 opts.binary_location = chrome_bin_path
 browser = webdriver.Chrome(chrome_options=opts)
 
 #######################################
+#              CLASSES
 
 
+class YtSearcher:
+
+    def __init__(self, search_phrase, result_num_target):
+        self.search_term = search_phrase
+        self.yt_search_term = str.replace(search_phrase, ' ', '+')
+        self.result = result_num_target
+        self.session_id = int(strftime("%y%m%d%H%M%S"))
+        self.result_url = ''
+        self.video_name = ''
+        self.results_page_html = ''
+        self.current_page_html = ''
+        self.initial_search_action = ''
+        self.try_this_action = ''
+        self.now_playing_acton = ''
+        self.current_url = ''
+
+    def set_initial_search_data(self):
+
+        self.initial_search_action = {"id": 1,
+                                      "session_id": self.session_id,
+                                      "date": strftime("%y:%m:%d"),
+                                      "time": strftime("%H:%M:%S"),
+                                      "action": "Initial Search",
+                                      "result_url": self.result_url,
+                                      "search_term": self.search_term,
+                                      "result_number": self.result,
+                                      "video_name": self.video_name
+                                      }
+
+    def get_initial_search_data(self):
+
+        return self.initial_search_action
+
+    def set_try_this_data(self):
+
+        self.try_this_action = {"id": 2,
+                                "session_id": self.session_id,
+                                "date": strftime("%y:%m:%d"),
+                                "time": strftime("%H:%M:%S"),
+                                "action": "Try This",
+                                "result_url": self.result_url,
+                                "search_term": self.search_term,
+                                "result_number": self.result,
+                                "video_name": self.video_name
+                                }
+
+    def get_try_this_data(self):
+
+        return self.try_this_action
+
+    def set_now_playing_data(self):
+
+        self.now_playing_action = {"id": 3,
+                                   "session_id": self.session_id,
+                                   "date": strftime("%y:%m:%d"),
+                                   "time": strftime("%H:%M:%S"),
+                                   "action": "Now Playing",
+                                   "result_url": self.result_url,
+                                   "search_term": self.search_term,
+                                   "result_number": self.result,
+                                   "video_name": self.video_name
+                                   }
+
+    def get_now_playing_data(self):
+
+        now_playing_action = {"id": 3,
+                              "session_id": self.session_id,
+                              "date": strftime("%y:%m:%d"),
+                              "time": strftime("%H:%M:%S"),
+                              "action": "Now Playing",
+                              "result_url": self.result_url,
+                              "search_term": self.search_term,
+                              "result_number": self.result,
+                              "video_name": self.video_name
+                              }
+
+        return now_playing_action
+
+    # Write requests object for YouTube Search Results page to object
+    def set_results_page_html(self):
+
+        self.results_page_html = requests.get(
+            'https://www.youtube.com/results?search_query={}.'.format(
+                self.yt_search_term))
+
+    # Write requests object for self.current_url to object
+    def set_current_page_html(self):
+        self.current_page_html = requests.get(self.current_url)
+
+    # Write video name for top search result from search results page to object
+    def set_first_video_name(self):
+
+        soup = bs4.BeautifulSoup(self.results_page_html.text,
+                                 "html.parser")
+        self.video_name = soup.select(
+            '.watch-title')[0].text.replace('\n', '').strip()
+
+    # Write first result url from search results page to object
+    def set_result_url(self):
+
+        # Use BeautifulSoup to find URL of first search result in HTML
+        soup = bs4.BeautifulSoup(self.results_page_html.text,
+                                 "html.parser")
+        link_elems = soup.select('.yt-lockup-title a')
+
+        # Open Chrome to the first search result
+        self.result_url = 'https://www.youtube.com' + \
+                          link_elems[self.result].get('href')
+
+    # Write current browser url to object
+    def set_current_url(self):
+
+        self.current_url = browser.current_url
+
+    # Write video name of current page video to object
+    def set_current_video_name(self):
+        video_soup = bs4.BeautifulSoup(
+            self.current_page_html.text, "html.parser")
+        self.video_name = video_soup.select('.watch-title')[0].text.replace(
+            '\n', '').strip()
+
+    # def next_song_writer(current_session_id, search_term, result_number,
+    #                        record_id):
+
+    def new_song_checker(self):
+
+        while self.current_url == browser.current_url:
+
+            sleep(10)
+
+        # Call new song writer
+
+"""
+class CommandRunner:
+
+    def __init__(self):
+        self.name = ''
+"""
+
+"""
+class HistoryWriter:
+
+    def __init__(self, csv_path, read_write, delimit):
+        self.path = csv_path
+        self.edit_option = read_write
+        self.delimiter = delimit
+
+        initial_search_action_data = [initial_search_action["id"],
+                                      initial_search_action["session_id"],
+                                      initial_search_action["date"],
+                                      initial_search_action["time"],
+                                      initial_search_action["action"],
+                                      initial_search_action["result_url"],
+                                      initial_search_action["search_term"],
+                                      initial_search_action["result_number"],
+                                      initial_search_action["video_name"]]
+
+
+        try_this_action_data = [try_this_action["id"],
+                        try_this_action["session_id"],
+                        try_this_action["date"],
+                        try_this_action["time"],
+                        try_this_action["action"],
+                        try_this_action["result_url"],
+                        try_this_action["search_term"],
+                        try_this_action["result_number"],
+                        try_this_action["video_name"]]
+
+        now_playing_action_data = [now_playing_action["id"],
+                           now_playing_action["session_id"],
+                           now_playing_action["date"],
+                           now_playing_action["time"],
+                           now_playing_action["action"],
+                           now_playing_action["result_url"],
+                           now_playing_action["search_term"],
+                           now_playing_action["result_number"],
+                           now_playing_action["video_name"]]
+
+        transaction_data = [initial_search_action_data, try_this_action_data,
+                    now_playing_action_data]
+
+        csv_writer(first_picks_csv, transaction_data)
+
+        return current_session_id
+"""
+
+"""
 # Write records to CSV
 def csv_writer(path, data):
     # Method to record data to csv
@@ -48,10 +240,10 @@ def csv_writer(path, data):
 
             for line in data:
                 writer.writerow(line)
-
+"""
 
 #######################################
-
+"""
 
 # Initialize the search, find YouTube result, and write the records
 def new_first_pick(search_string, yt_result_number):
@@ -233,7 +425,7 @@ def next_song_checker(old_url, search_term, result_number, current_session_id,
 
     # Once the URL has changed, write down the record
     next_song_writer(current_session_id, search_term, result_number, record_id)
-
+"""
 
 # ================================__main__=====================================
 
@@ -263,8 +455,22 @@ if __name__ == "__main__":
     # Here we go!
     try:
 
-        # Run the search URL, pull up the video, and write the records
-        session_id = new_first_pick(args.search_string, args.number)
+        #####################
+        # First Song Search #
+        #####################
+
+        yt_searcher_one = YtSearcher(args.search_string, args.number)
+
+        yt_searcher_one.set_results_page_html()
+
+        yt_searcher_one.set_result_url()
+
+        browser.get(yt_searcher_one.result_url)
+
+
+
+
+
 
         # Check for a new song, and write records when it shows up
         for i in range(1, 99):
