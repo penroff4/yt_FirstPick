@@ -17,6 +17,7 @@ import argparse
 import csv
 import os
 from time import strftime
+from threading import Thread
 
 
 first_picks_csv = '/Users/penroff4/scripts/yt_FirstPick_stats.csv'
@@ -219,17 +220,18 @@ def next_song_writer(current_session_id, search_term, result_number,
 
 # Check to see if YouTube's auto play has kicked in
 def next_song_checker(old_url, search_term, result_number, current_session_id,
-                      record_id):
+                      record_id, number_of_repeats):
 
-    # Grab URL from current page
-    current_url = browser.current_url
-
-    # If the URL hasn't changed, wait and check again later
-    while current_url == old_url:
-        # Pause...take a deep breath
-        sleep(10)
-        # Reset URL to current page
+    for i in range(1, number_of_repeats):
+        # Grab URL from current page
         current_url = browser.current_url
+
+        # If the URL hasn't changed, wait and check again later
+        while current_url == old_url:
+            # Pause...take a deep breath
+            sleep(10)
+            # Reset URL to current page
+            current_url = browser.current_url
 
     # Once the URL has changed, write down the record
     next_song_writer(current_session_id, search_term, result_number, record_id)
@@ -267,9 +269,9 @@ if __name__ == "__main__":
         session_id = new_first_pick(args.search_string, args.number)
 
         # Check for a new song, and write records when it shows up
-        for i in range(1, 99):
-            next_song_checker(browser.current_url,
-                              args.search_string, args.number, session_id, i)
+        repeat_times =
+
+        next_song_checker(browser.current_url, args.search_string, args.number, session_id, repeat_times)
 
     # If YouTube isn't responding, quit and tell user
     except urllib.error.HTTPError as e:
