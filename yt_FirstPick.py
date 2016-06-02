@@ -8,17 +8,15 @@ python3 youtube_search.py
     -s or --search_string = '<string>'
 """
 
-from time import sleep
+import curses
+from time import sleep, strftime
 from selenium import webdriver
+import sys
 import requests
 import bs4
 import urllib.error
 import argparse
-from time import strftime
 import configparser
-from prompt_toolkit import prompt
-from prompt_toolkit.styles import style_from_dict
-from prompt_toolkit.token import Token
 
 #######################################
 
@@ -27,23 +25,11 @@ config.read('yt_FirstPick_Settings.ini')
 
 chrome_bin_path = config['app settings']['chromedriver_path']
 
-number_of_repeats = int(config['app settings']['number_of_songs'])
-
 opts = webdriver.ChromeOptions()
 opts.binary_location = chrome_bin_path
 browser = webdriver.Chrome(chrome_options=opts)
 
-style = style_from_dict({
-    Token.Toolbar: '#ffffff bg:#333333'
-})
-
-#######################################
-
-
-def get_bottom_toolbar_tokens(cli):
-    return [(Token.Toolbar, ' q - Quit  r - Previous Song  n - Next Song')]
-
-
+screen = curses.initscr()
 #######################################
 
 
@@ -110,6 +96,17 @@ def get_current_video():
 #######################################
 
 
+def get_raw_input(stdscr, r, c, prompt_string):
+    curses.echo()
+    stdscr.addstr(r, c, prompt_string)
+    stdscr.refresh()
+    input = stdscr.getstr(r + 1, c, 255)
+    return input
+
+
+#######################################
+
+
 # Check to see if YouTube's auto play has kicked in
 def check_for_new_video(old_url):
 
@@ -129,14 +126,15 @@ def check_for_new_video(old_url):
 
 
 #######################################
-
-
-def cmd_input():
-    while True:
-
-        user_input = prompt('> ',
-                            get_bottom_toolbar_tokens=get_bottom_toolbar_tokens
-                            , style=style)
+"""
+cmds:
+    r = Go back one song (back page)
+    n = Play next song (in auto play list)
+    q = Quit program
+    m = Switch to Mix of current song
+    s = Instigate new seach
+    l = Login
+    a = add to playlist
 
         if user_input == 'r':
 
@@ -145,7 +143,7 @@ def cmd_input():
             # browser.execute_script("window.history.go(-1)")
             browser.back()
 
-            get_current_video_name()
+            get_current_video()
 
         elif user_input == 'n':
 
@@ -158,32 +156,44 @@ def cmd_input():
 
             next_song.click()
 
-            current_song()
+            get_current_video()
 
         elif user_input == 'q':
 
             browser.close()
             exit("Quiting...")
 
+        # elif user_input == 'm'
 
-# ================================__main__=====================================
+            # jump to YouTube Mix optoin
 
-if __name__ == "__main__":
+        # elif user_input == 's'
 
-    parser = argparse.ArgumentParser(description='Find first result on '
-                                                 'YouTube')
+            # instigate new search with search
+"""
+
+#######################################
+
+
+def main(screen):
+    parser = argparse.ArgumentParser(
+        description='Find first result on YouTube')
     # The string to be searched for on YouTube
-    parser.add_argument('-s', '--search_string', help='string to use for '
-                                                      'YouTube search')
+    parser.add_argument('-s',
+                        '--search_string',
+                        help='string to use for YouTube search')
     # The specific youtube search result to return
-    parser.add_argument('-n', '--number', help='search result number you want '
-                                               'to play')
+    parser.add_argument('-n',
+                        '--number',
+                        help='search result number you want to play')
 
     args = parser.parse_args()
 
     # Check that parameters were entered and are valid.  Quit if not.
     if not args.search_string:
-        exit("Please specify a search string!")
+        args.search_string = str(get_raw_input(
+            screen, 2, 3, "Where would you like to start? (Enter a search "
+                          "string!)"))
 
     # Set chosen search result from cmd line or to 1 by default
     if not args.number:
@@ -195,26 +205,35 @@ if __name__ == "__main__":
     try:
 
         # Pull up first song
-            # Print 'Searching'
-            # Print 'Try This'
-            # Print 'Now Playing'
+        # Print 'Searching'
+        # Print 'Try This'
+        # Print 'Now Playing'
 
         # For Forever
-            # Await input
-            # Check for new URL
+        # Await input
+        # Check for new URL
 
         # Run the search URL, pull up the video, and write the records
         new_first_pick(args.search_string, args.number)
 
-        # Check for a new song, and write records when it shows up
-        t1 = Thread(target=next_song_checker, args=(browser.current_url,
-                    args.search_string, args.number, session_id, 1,
-                    number_of_repeats))
-        t2 = Thread(target=cmd_input)
+        while True:
 
-        t1.start()
-        t2.start()
+            check_for_new_video(browser.current_url)
 
     # If YouTube isn't responding, quit and tell user
     except urllib.error.HTTPError as e:
-        print("An HTTP error %d occurred:\n%s" % (e.resp.status, e.content))
+        sys.exit("An HTTP error %d occurred:\n%s" % (e.resp.status, e.content))
+
+    except KeyboardInterrupt:
+        curses.nocbreak()
+        screen.keypad(False)
+        curses.echo()
+        sys.exit("You have exited the program via ctrl+c")
+
+
+# ================================__main__=====================================
+
+if __name__ == "__main__":
+
+    curses.wrapper(main)
+
