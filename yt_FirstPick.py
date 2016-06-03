@@ -14,6 +14,7 @@ from selenium import webdriver
 import sys
 import requests
 import bs4
+import os
 import urllib.error
 import argparse
 import configparser
@@ -34,12 +35,16 @@ screen = curses.initscr()
 
 
 # Initialize the search, find YouTube result, and write the records
-def new_first_pick(search_string, yt_result_number):
+def new_first_pick(search_string, yt_result_number, window):
+
+    # Set cursor to invisible
+    curses.curs_set(0)
 
     # Make search string url friendly, replace spaces with + symbol
     yt_search_string = str.replace(search_string, ' ', '+')
 
-    print("\n{} || Searching".format(strftime("%H:%M:%S")))
+    window.addstr("\n{} || Searching".format(strftime("%H:%M:%S")))
+    window.refresh()
 
     # Grab HTML from YouTube search results page
     res = requests.get(
@@ -52,7 +57,9 @@ def new_first_pick(search_string, yt_result_number):
     soup = bs4.BeautifulSoup(res.text, "html.parser")
     link_elems = soup.select('.yt-lockup-title a')
 
-    print("{} || Try this one...".format(strftime("%H:%M:%S")))
+    curser_position = curses.getsyx()
+    window.addstr(curser_position[0] + 1, 0, "{} || Try this one...".format(strftime("%H:%M:%S")))
+    window.refresh()
 
     # Open Chrome to the first search result
     returned_result = 'https://www.youtube.com' + \
@@ -68,8 +75,9 @@ def new_first_pick(search_string, yt_result_number):
         '.watch-title')[0].text.replace('\n', '').strip()
 
     # Let me know what I'm listening to!
-    print("{} || Now playing \'{}\'"
-          .format(strftime("%H:%M:%S"), song_name))
+    curser_position = curses.getsyx()
+    window.addstr(curser_position[0] + 1, 0, "{0} || Now playing \'{1}\'".format(strftime("%H:%M:%S"), song_name))
+    window.refresh()
 
 
 #######################################
@@ -176,51 +184,49 @@ cmds:
 
 
 def main(screen):
-    parser = argparse.ArgumentParser(
-        description='Find first result on YouTube')
-    # The string to be searched for on YouTube
-    parser.add_argument('-s',
-                        '--search_string',
-                        help='string to use for YouTube search')
-    # The specific youtube search result to return
-    parser.add_argument('-n',
-                        '--number',
-                        help='search result number you want to play')
 
-    args = parser.parse_args()
+    try:
+        os.system('clear')
 
-    # Check that parameters were entered and are valid.  Quit if not.
-    if not args.search_string:
-        args.search_string = str(get_raw_input(
+        screen.addstr(" HEADLESS RADIO", curses.A_REVERSE)
+        screen.chgat(-1, curses.A_REVERSE)
+
+        window_main = curses.newwin(curses.LINES - 2, curses.COLS - 2)
+        screen.refresh()
+
+        parser = argparse.ArgumentParser(
+            description='Find first result on YouTube')
+        # The string to be searched for on YouTube
+        parser.add_argument('-s',
+                            '--search_string',
+                            help='string to use for YouTube search')
+        # The specific youtube search result to return
+        parser.add_argument('-n',
+                            '--number',
+                            help='search result number you want to play')
+
+        args = parser.parse_args()
+
+        # Check that parameters were entered and are valid.  Quit if not.
+        if not args.search_string:
+            args.search_string = str(get_raw_input(
             screen, 2, 3, "Where would you like to start? (Enter a search "
                           "string!)"))
 
-    # Set chosen search result from cmd line or to 1 by default
-    if not args.number:
-        args.number = 0
-    else:
-        args.number = int(args.number.strip()) - 1
-
-    # Here we go!
-    try:
-
-        # Pull up first song
-        # Print 'Searching'
-        # Print 'Try This'
-        # Print 'Now Playing'
-
-        # For Forever
-        # Await input
-        # Check for new URL
+        # Set chosen search result from cmd line or to 1 by default
+        if not args.number:
+            args.number = 0
+        else:
+            args.number = int(args.number.strip()) - 1
 
         # Run the search URL, pull up the video, and write the records
-        new_first_pick(args.search_string, args.number)
+        new_first_pick(args.search_string, args.number, window_main)
 
         while True:
 
             check_for_new_video(browser.current_url)
 
-    # If YouTube isn't responding, quit and tell user
+        # If YouTube isn't responding, quit and tell user
     except urllib.error.HTTPError as e:
         sys.exit("An HTTP error %d occurred:\n%s" % (e.resp.status, e.content))
 
