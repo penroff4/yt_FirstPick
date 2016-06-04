@@ -36,6 +36,8 @@ chrome_bin_path = config['app settings']['chromedriver_path']
 opts = webdriver.ChromeOptions()
 opts.binary_location = chrome_bin_path
 browser = webdriver.Chrome(chrome_options=opts)
+browser.set_window_size(1,1)
+browser.set_window_position(-3000,-3000)
 
 screen = curses.initscr()
 #######################################
