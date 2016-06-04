@@ -8,6 +8,13 @@ python3 youtube_search.py
     -s or --search_string = '<string>'
 """
 
+"""
+TO DO LIST:
+    - Add "History" title to top of scrolling history window
+    - Clean up top right corner
+    - Add cmd features to bottom of screen
+"""
+
 import curses
 from time import sleep, strftime
 from selenium import webdriver
@@ -38,7 +45,7 @@ screen = curses.initscr()
 def new_first_pick(search_string, yt_result_number, window):
 
     # Set cursor to invisible
-    curses.curs_set(1)
+    curses.curs_set(0)
 
     # Make search string url friendly, replace spaces with + symbol
     yt_search_string = str.replace(search_string, ' ', '+')
@@ -96,7 +103,7 @@ def get_current_video(window):
 
     # Let me know what I'm listening to!
     # window.addstr(0,0,"",curses.KEY_EOL)
-    window.addstr( "\n{} || Now playing \'{}\'".format(strftime("%H:%M:%S"), video_name))
+    window.addstr("\n{} || Now playing \'{}\'".format(strftime("%H:%M:%S"), video_name))
     window.refresh()
 
 
@@ -187,13 +194,10 @@ def main(screen):
 
     try:
         os.system('clear')
-
+        
+        # Add initial formatting
         screen.addstr(" HEADLESS RADIO", curses.A_REVERSE)
         screen.chgat(-1, curses.A_REVERSE)
-
-        window_main = curses.newwin(5, curses.COLS - 2)
-        window_main.border()
-        screen.refresh()
 
         parser = argparse.ArgumentParser(
             description='Find first result on YouTube')
@@ -208,7 +212,8 @@ def main(screen):
 
         args = parser.parse_args()
 
-        # Check that parameters were entered and are valid.  Quit if not.
+        # Check that parameters were entered and are valid.  
+        # If no search string arg, get from user
         if not args.search_string:
             args.search_string = str(get_raw_input(
             screen, 2, 3, "Where would you like to start? (Enter a search "
@@ -220,10 +225,14 @@ def main(screen):
         else:
             args.number = int(args.number.strip()) - 1
 
+        screen.clear()
+        window_main = curses.newwin(5, curses.COLS - 2)
+        window_main.border()
+        screen.refresh()
         # Run the search URL, pull up the video, and write the records
         new_first_pick(args.search_string, args.number, window_main)
 
-        window_history = curses.newwin(curses.LINES - 6, curses.COLS - 1, 6, 1)
+        window_history = curses.newwin(curses.LINES - 9, curses.COLS - 2, 6, 1)
         window_history.idlok(1)
         window_history.scrollok(True)
         window_history.border()
