@@ -236,7 +236,7 @@ def main(screen):
         screen.chgat(-1, curses.A_REVERSE)
 
         # Add "Initial Search" window
-        window_main = curses.newwin(5, curses.COLS - 2, 1, 0)
+        window_main = curses.newwin(5, curses.COLS - 0, 1, 0)
         window_main.border()
         screen.refresh()
 
@@ -250,7 +250,7 @@ def main(screen):
         screen.refresh()
 
         # Set up border window for "Now Playing" output
-        window_history_border = curses.newwin(curses.LINES - 8, curses.COLS - 2,
+        window_history_border = curses.newwin(curses.LINES - 8, curses.COLS - 0,
                7, 0 )
         window_history_border.border()
         window_history_border.refresh()
