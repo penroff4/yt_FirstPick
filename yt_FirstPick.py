@@ -10,15 +10,15 @@ python3 youtube_search.py
 
 """
 TO DO LIST:
-    - Add "History" title to top of scrolling history window
-    - Clean up top right corner
-    - Add cmd features to bottom of screen
+    - Add cmd features functionality (i.e. method(s) )
+    - Bring in threading functionality
 """
 
 import curses
 from time import sleep, strftime
 from selenium import webdriver
 import sys
+import threading
 import requests
 import bs4
 import os
@@ -38,6 +38,8 @@ opts.binary_location = chrome_bin_path
 browser = webdriver.Chrome(chrome_options=opts)
 browser.set_window_size(1,1)
 browser.set_window_position(-3000,-3000)
+
+thread_lock = threading.lock()
 
 screen = curses.initscr()
 #######################################
@@ -155,7 +157,13 @@ cmds:
     s = Instigate new seach
     l = Login
     a = add to playlist
+"""
+def cmd_input(window):
 
+    # Get user input of single key stroke
+    user_input = window.getch()
+
+        # Play previous song
         if user_input == 'r':
 
             print('Let\'s go back one song...')
@@ -165,6 +173,7 @@ cmds:
 
             get_current_video()
 
+        # Play next song
         elif user_input == 'n':
 
             print('Let\'s hear the next song...')
@@ -178,19 +187,26 @@ cmds:
 
             get_current_video()
 
+        # Quit application
         elif user_input == 'q':
 
             browser.close()
-            exit("Quiting...")
+            sys.exit("Quiting...")
 
-        # elif user_input == 'm'
+        # Switch to YouTube Mix option
+        elif user_input == 'm'
 
-            # jump to YouTube Mix optoin
+            mix_list_option = browser.find_element_by_xpath(
+                    '//*[@id="watch-related"]/li[1]/a')
+
+            mix_list_option.click()
+
+            get_current_video()
 
         # elif user_input == 's'
 
             # instigate new search with search
-"""
+
 
 #######################################
 
