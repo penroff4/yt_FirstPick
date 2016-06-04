@@ -96,8 +96,7 @@ def get_current_video(window):
 
     # Let me know what I'm listening to!
     # window.addstr(0,0,"",curses.KEY_EOL)
-    window.addstr(0,0,"",curses.KEY_IC)
-    window.addstr( "{} || Now playing \'{}\'".format(strftime("%H:%M:%S"), video_name))
+    window.addstr( "\n{} || Now playing \'{}\'".format(strftime("%H:%M:%S"), video_name))
     window.refresh()
 
 
