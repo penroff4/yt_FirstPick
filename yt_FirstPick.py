@@ -266,7 +266,13 @@ def main(screen):
         window_history.refresh()
 
         screen.move(curses.LINES-1, 0)
-        screen.addstr(" CMD BAR", curses.A_REVERSE)
+        # screen.addstr(" CMD BAR", curses.A_REVERSE)
+        # screen.chgat(-1, curses.A_REVERSE)
+        screen.addstr(' N - Next Song', curses.A_REVERSE)
+        screen.addstr('  R - Previous Song', curses.A_REVERSE)
+        screen.addstr('  Q - Quit', curses.A_REVERSE)
+        screen.addstr('  M - Play Mix List', curses.A_REVERSE)
+        screen.addstr('  S - Initiate New Search', curses.A_REVERSE)
         screen.chgat(-1, curses.A_REVERSE)
         screen.refresh()
 
