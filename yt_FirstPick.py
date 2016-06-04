@@ -263,6 +263,11 @@ def main(screen):
         window_history.scrollok(True)
         window_history.refresh()
 
+        screen.move(curses.LINES-1, 0)
+        screen.addstr(" CMD BAR", curses.A_REVERSE)
+        screen.chgat(-1, curses.A_REVERSE)
+        screen.refresh()
+
         while True:
             for i in range(100):
                 check_for_new_video(browser.current_url, window_history, i)
