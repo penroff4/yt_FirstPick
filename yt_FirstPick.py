@@ -228,21 +228,29 @@ def main(screen):
         else:
             args.number = int(args.number.strip()) - 1
 
+        # Clear screen from "Get Search Param" page
         screen.clear()
-        window_main = curses.newwin(5, curses.COLS - 2)
+
+        # Add title to main ui page
+        screen.addstr(" HEADLESS RADIO", curses.A_REVERSE)
+        screen.chgat(-1, curses.A_REVERSE)
+
+        # Add "Initial Search" window
+        window_main = curses.newwin(5, curses.COLS - 2, 1, 0)
         window_main.border()
         screen.refresh()
+
         # Run the search URL, pull up the video, and write the records
         new_first_pick(args.search_string, args.number, window_main)
 
         # Set up border window for "Now Playing" output
         window_history_border = curses.newwin(curses.LINES - 8, curses.COLS - 2,
-               5, 0 )
+               6, 0 )
         window_history_border.border()
         window_history_border.refresh()
 
         # Set up actual output window for "Now Playing"
-        window_history = curses.newwin(curses.LINES - 10, curses.COLS - 4, 6, 1)
+        window_history = curses.newwin(curses.LINES - 10, curses.COLS - 4, 7, 1)
 
         # Make sure "Now Playing" window scrolls correctly
         window_history.idlok(1)
