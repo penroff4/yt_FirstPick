@@ -88,7 +88,7 @@ def new_first_pick(search_string, yt_result_number, window):
 #######################################
 
 
-def get_current_video(window):
+def get_current_video(window, counter):
 
     # Set video url
     video_url = browser.current_url
@@ -102,8 +102,11 @@ def get_current_video(window):
         '.watch-title')[0].text.replace('\n', '').strip()
 
     # Let me know what I'm listening to!
-    # window.addstr(0,0,"",curses.KEY_EOL)
-    window.addstr("\n{} || Now playing \'{}\'".format(strftime("%H:%M:%S"), video_name))
+    if counter < 1:
+        window.addstr("{} || Now Playing \'{}\'".format(strftime("%H:%M:%S"),
+            video_name))
+    else:
+        window.addstr("\n{} || Now playing \'{}\'".format(strftime("%H:%M:%S"), video_name))
     window.refresh()
 
 
@@ -121,7 +124,7 @@ def get_raw_input(stdscr, r, c, prompt_string):
 
 
 # Check to see if YouTube's auto play has kicked in
-def check_for_new_video(old_url, window):
+def check_for_new_video(old_url, window, counter):
 
     """
     while True:
@@ -137,7 +140,7 @@ def check_for_new_video(old_url, window):
 
     """
     # Once the URL has changed, write down the record
-    get_current_video(window)
+    get_current_video(window, counter)
 
 
 #######################################
@@ -232,15 +235,23 @@ def main(screen):
         # Run the search URL, pull up the video, and write the records
         new_first_pick(args.search_string, args.number, window_main)
 
-        window_history = curses.newwin(curses.LINES - 9, curses.COLS - 2, 6, 1)
+        # Set up border window for "Now Playing" output
+        window_history_border = curses.newwin(curses.LINES - 8, curses.COLS - 2,
+               5, 0 )
+        window_history_border.border()
+        window_history_border.refresh()
+
+        # Set up actual output window for "Now Playing"
+        window_history = curses.newwin(curses.LINES - 10, curses.COLS - 4, 6, 1)
+
+        # Make sure "Now Playing" window scrolls correctly
         window_history.idlok(1)
         window_history.scrollok(True)
-        window_history.border()
         window_history.refresh()
 
         while True:
-
-            check_for_new_video(browser.current_url, window_history)
+            for i in range(100):
+                check_for_new_video(browser.current_url, window_history, i)
 
         # If YouTube isn't responding, quit and tell user
     except urllib.error.HTTPError as e:
