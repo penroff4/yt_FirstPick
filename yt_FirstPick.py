@@ -243,14 +243,20 @@ def main(screen):
         # Run the search URL, pull up the video, and write the records
         new_first_pick(args.search_string, args.number, window_main)
 
+        # Add title to "Now Playing" window
+        screen.move(6,0)
+        screen.addstr(" HISTORY", curses.A_REVERSE)
+        screen.chgat(-1, curses.A_REVERSE)
+        screen.refresh()
+
         # Set up border window for "Now Playing" output
         window_history_border = curses.newwin(curses.LINES - 8, curses.COLS - 2,
-               6, 0 )
+               7, 0 )
         window_history_border.border()
         window_history_border.refresh()
 
         # Set up actual output window for "Now Playing"
-        window_history = curses.newwin(curses.LINES - 10, curses.COLS - 4, 7, 1)
+        window_history = curses.newwin(curses.LINES - 10, curses.COLS - 4, 8, 1)
 
         # Make sure "Now Playing" window scrolls correctly
         window_history.idlok(1)
