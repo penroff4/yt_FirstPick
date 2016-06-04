@@ -38,12 +38,12 @@ screen = curses.initscr()
 def new_first_pick(search_string, yt_result_number, window):
 
     # Set cursor to invisible
-    curses.curs_set(0)
+    curses.curs_set(1)
 
     # Make search string url friendly, replace spaces with + symbol
     yt_search_string = str.replace(search_string, ' ', '+')
 
-    window.addstr("\n{} || Searching".format(strftime("%H:%M:%S")))
+    window.addstr(1, 2,"{} || Searching".format(strftime("%H:%M:%S")))
     window.refresh()
 
     # Grab HTML from YouTube search results page
@@ -57,8 +57,7 @@ def new_first_pick(search_string, yt_result_number, window):
     soup = bs4.BeautifulSoup(res.text, "html.parser")
     link_elems = soup.select('.yt-lockup-title a')
 
-    curser_position = curses.getsyx()
-    window.addstr(curser_position[0] + 1, 0, "{} || Try this one...".format(strftime("%H:%M:%S")))
+    window.addstr(2, 2, "{} || Try this one...".format(strftime("%H:%M:%S")))
     window.refresh()
 
     # Open Chrome to the first search result
@@ -75,15 +74,14 @@ def new_first_pick(search_string, yt_result_number, window):
         '.watch-title')[0].text.replace('\n', '').strip()
 
     # Let me know what I'm listening to!
-    curser_position = curses.getsyx()
-    window.addstr(curser_position[0] + 1, 0, "{0} || Now playing \'{1}\'".format(strftime("%H:%M:%S"), song_name))
+    window.addstr(3, 2, "{0} || Now playing \'{1}\'".format(strftime("%H:%M:%S"), song_name))
     window.refresh()
 
 
 #######################################
 
 
-def get_current_video():
+def get_current_video(window):
 
     # Set video url
     video_url = browser.current_url
@@ -97,18 +95,19 @@ def get_current_video():
         '.watch-title')[0].text.replace('\n', '').strip()
 
     # Let me know what I'm listening to!
-    print("{} || Now playing \'{}\'"
-          .format(strftime("%H:%M:%S"), video_name))
+    # window.addstr(0,0,"",curses.KEY_EOL)
+    window.addstr(0,0,"",curses.KEY_IC)
+    window.addstr( "{} || Now playing \'{}\'".format(strftime("%H:%M:%S"), video_name))
+    window.refresh()
 
 
 #######################################
-
 
 def get_raw_input(stdscr, r, c, prompt_string):
     curses.echo()
     stdscr.addstr(r, c, prompt_string)
     stdscr.refresh()
-    input = stdscr.getstr(r + 1, c, 255)
+    input = stdscr.getstr(r + 2, c, 255)
     return input
 
 
@@ -116,8 +115,9 @@ def get_raw_input(stdscr, r, c, prompt_string):
 
 
 # Check to see if YouTube's auto play has kicked in
-def check_for_new_video(old_url):
+def check_for_new_video(old_url, window):
 
+    """
     while True:
         # Grab URL from current page
         current_url = browser.current_url
@@ -125,12 +125,13 @@ def check_for_new_video(old_url):
         # If the URL hasn't changed, wait and check again later
         while current_url == old_url:
             # Pause...take a deep breath
-            sleep(10)
+            sleep(1)
             # Reset URL to current page
             current_url = browser.current_url
 
+    """
     # Once the URL has changed, write down the record
-    get_current_video()
+    get_current_video(window)
 
 
 #######################################
@@ -191,7 +192,8 @@ def main(screen):
         screen.addstr(" HEADLESS RADIO", curses.A_REVERSE)
         screen.chgat(-1, curses.A_REVERSE)
 
-        window_main = curses.newwin(curses.LINES - 2, curses.COLS - 2)
+        window_main = curses.newwin(5, curses.COLS - 2)
+        window_main.border()
         screen.refresh()
 
         parser = argparse.ArgumentParser(
@@ -222,18 +224,31 @@ def main(screen):
         # Run the search URL, pull up the video, and write the records
         new_first_pick(args.search_string, args.number, window_main)
 
+        window_history = curses.newwin(curses.LINES - 6, curses.COLS - 1, 6, 1)
+        window_history.idlok(1)
+        window_history.scrollok(True)
+        window_history.border()
+        window_history.refresh()
+
         while True:
 
-            check_for_new_video(browser.current_url)
+            check_for_new_video(browser.current_url, window_history)
 
         # If YouTube isn't responding, quit and tell user
     except urllib.error.HTTPError as e:
-        sys.exit("An HTTP error %d occurred:\n%s" % (e.resp.status, e.content))
+        # sys.exit("An HTTP error %d occurred:\n%s" % (e.resp.status, e.content))
+        curses.nocbreak()
+        screen.keypad(False)
+        curses.echo()
+        browser.close()
+        sys.exit("An HTTP error {0} occured:\n{1}".format(e.resp.status,
+            e.contet))
 
     except KeyboardInterrupt:
         curses.nocbreak()
         screen.keypad(False)
         curses.echo()
+        browser.close()
         sys.exit("You have exited the program via ctrl+c")
 
 
