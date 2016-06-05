@@ -12,6 +12,13 @@ python3 youtube_search.py
 TO DO LIST:
     - Add cmd features functionality (i.e. method(s) )
     - Bring in threading functionality
+    - Implement three Thread classes
+        * CmdInput
+        * CurrentVideo
+        * HistoryPrinter
+        * CmdInput and CurrentVideo will feed prompts into a queue, and
+          HistoryPrinter will pull those prompts from that queue and into the
+          window_history object.
 """
 
 import curses
@@ -39,7 +46,7 @@ browser = webdriver.Chrome(chrome_options=opts)
 browser.set_window_size(1,1)
 browser.set_window_position(-3000,-3000)
 
-thread_lock = threading.lock()
+thread_lock = threading.Lock()
 
 screen = curses.initscr()
 #######################################
@@ -163,49 +170,47 @@ def cmd_input(window):
     # Get user input of single key stroke
     user_input = window.getch()
 
-        # Play previous song
-        if user_input == 'r':
+    # Play previous song
+    if user_input == 'r':
 
-            print('Let\'s go back one song...')
+        print('Let\'s go back one song...')
 
-            # browser.execute_script("window.history.go(-1)")
-            browser.back()
+        # browser.execute_script("window.history.go(-1)")
+        browser.back()
 
-            get_current_video()
+        get_current_video()
 
-        # Play next song
-        elif user_input == 'n':
+    # Play next song
+    elif user_input == 'n':
 
-            print('Let\'s hear the next song...')
+        print('Let\'s hear the next song...')
 
-            next_song = \
-                browser.find_element_by_xpath(
-                    '//*[@id="watch7-sidebar-modules"]/div[1]/div/div[2]/ul/li'
-                    '/div[1]/a/span[1]')
+        next_song = \
+            browser.find_element_by_xpath()
 
-            next_song.click()
+        next_song.click()
 
-            get_current_video()
+        get_current_video()
 
-        # Quit application
-        elif user_input == 'q':
+    # Quit application
+    elif user_input == 'q':
 
-            browser.close()
-            sys.exit("Quiting...")
+        browser.close()
+        sys.exit("Quiting...")
 
-        # Switch to YouTube Mix option
-        elif user_input == 'm'
+    # Switch to YouTube Mix option
+    elif user_input == 'm':
 
-            mix_list_option = browser.find_element_by_xpath(
-                    '//*[@id="watch-related"]/li[1]/a')
+        mix_list_option = browser.find_element_by_xpath(
+                '//*[@id="watch-related"]/li[1]/a')
 
-            mix_list_option.click()
+        mix_list_option.click()
 
-            get_current_video()
+        get_current_video()
 
-        # elif user_input == 's'
+    # elif user_input == 's'
 
-            # instigate new search with search
+        # instigate new search with search
 
 
 #######################################
