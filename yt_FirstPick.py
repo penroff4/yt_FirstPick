@@ -14,18 +14,32 @@ TO DO LIST:
     - Bring in threading functionality
     - Implement three Thread classes
         * CmdInput
+            - Add "put to queue" call to run method
         * CurrentVideo
+            - Add "put to queue" call to run method
         * HistoryPrinter
         * CmdInput and CurrentVideo will feed prompts into a queue, and
           HistoryPrinter will pull those prompts from that queue and into the
           window_history object.
 """
 
+"""
+proposed cmd_input cmds:
+    r = Go back one song (back page)
+    n = Play next song (in auto play list)
+    q = Quit program
+    m = Switch to Mix of current song
+    s = Instigate new seach
+    l = Login
+    a = add to playlist
+"""
+
 import curses
 from time import sleep, strftime
 from selenium import webdriver
 import sys
-import threading
+from threading import Thread
+from queue import Queue
 import requests
 import bs4
 import os
@@ -33,23 +47,154 @@ import urllib.error
 import argparse
 import configparser
 
-#######################################
+# ================================__vars__=====================================
 
+# setup config settings
 config = configparser.ConfigParser()
 config.read('yt_FirstPick_Settings.ini')
 
+# setup chromedriver path
 chrome_bin_path = config['app settings']['chromedriver_path']
 
+# setup chrome driver
 opts = webdriver.ChromeOptions()
 opts.binary_location = chrome_bin_path
 browser = webdriver.Chrome(chrome_options=opts)
+
+# set chrome's physical location to be the top left (i.e. out of the way)
 browser.set_window_size(1,1)
-browser.set_window_position(-3000,-3000)
+browser.set_window_position(-3000, -3000)
 
-thread_lock = threading.Lock()
-
+# Initial screen for curses
 screen = curses.initscr()
+
+# Queue for handling prompt input
+prompt_queue = Queue()
+
+
+# ==============================__Classes__====================================
+
+# Object for handling threading of user cmds
+class CmdInput(Thread):
+
+    def __init__(self, queue, screen):
+        Thread.__init__(self)
+        self.queue = queue
+        self.screen = screen
+
+    def run(self):
+
+        while True:
+            # Get user input of single key stroke
+            user_input = screen.getkey()
+
+            # Play previous song
+            if user_input == 'r':
+
+                self.queue.put("\nMoving to previous song...\n")
+
+                # browser.execute_script("window.history.go(-1)")
+                browser.back()
+
+            # Play next song
+            elif user_input == 'n':
+
+                self.queue.put("\nSkipping to next song...\n")
+                next_song = browser.find_element_by_xpath('//*[@id="watch7-sidebar-modules"]/div[1]/div/div[2]/ul/li/div[2]/a/span/img')
+                next_song.click()
+
+            # Quit application
+            elif user_input == 'q':
+
+                self.queue.put("\nQuitting...\n")
+                browser.close()
+                sys.exit()
+
+            # Switch to YouTube Mix option
+            elif user_input == 'm':
+
+                self.queue.put("\nSwitching to YouTube Mix List...\n")
+
+                mix_list_option = browser.find_element_by_xpath(
+                '//*[@id="watch-related"]/li[1]/a')
+
+                mix_list_option.click()
+
+            # elif user_input == 's'
+
+                # instigate new search with search
+
+
 #######################################
+
+# Object for handling 'new video' prompts
+class GetCurrentVideo(Thread):
+
+    def __init__(self, queue):
+        Thread.__init__(self)
+        self.queue = queue
+
+    def run(self):
+
+        previous_url = browser.current_url
+        is_first_print = True
+
+        while True:
+
+            current_url = browser.current_url
+
+            while current_url == previous_url:
+
+                sleep(3)
+
+                current_url = browser.current_url
+
+            res = requests.get(current_url)
+
+            soup = bs4.BeautifulSoup(res.text, "html.parser")
+            video_name = soup.select(
+                ".watch-title")[0].text.replace("\n", "").strip()
+
+            if is_first_print is True:
+                update_string = "{} || Now Playing \'{}\'"\
+                    .format(strftime("%H:%M:%S"), video_name)
+            else:
+                update_string = "\n{} || Now Playing \'{}\'"\
+                    .format(strftime("%H:%M:%S"), video_name)
+
+            is_first_print = False
+
+            self.queue.put(update_string)
+
+
+#######################################
+
+# Object for handling printing threaded prompts into curses window
+class WindowQueuePrinter(Thread):
+
+    def __init__(self, queue, window):
+        Thread.__init__(self)
+        self.queue = queue
+        self.window = window
+
+    def run(self):
+        while True:
+            try:
+
+                if not self.queue.empty():
+                    message = self.queue.get(block=True,timeout=1)
+                    self.window.addstr(message)
+                    self.window.refresh()
+
+                else:
+                    sleep(1)
+
+            except self.queue.Empty:
+                    sleep(1)
+                    pass
+
+
+# ==============================__Methods__====================================
 
 
 # Initialize the search, find YouTube result, and write the records
@@ -98,119 +243,14 @@ def new_first_pick(search_string, yt_result_number, window):
 
 #######################################
 
-
-def get_current_video(window, counter):
-
-    # Set video url
-    video_url = browser.current_url
-
-    # Instantiate YouTube video page request object
-    res = requests.get(video_url)
-
-    # Go through the video page HTML to find the song name
-    soup = bs4.BeautifulSoup(res.text, "html.parser")
-    video_name = soup.select(
-        '.watch-title')[0].text.replace('\n', '').strip()
-
-    # Let me know what I'm listening to!
-    if counter < 1:
-        window.addstr("{} || Now Playing \'{}\'".format(strftime("%H:%M:%S"),
-            video_name))
-    else:
-        window.addstr("\n{} || Now playing \'{}\'".format(strftime("%H:%M:%S"), video_name))
-    window.refresh()
-
-
-#######################################
-
+# function for handling raw input in curses
 def get_raw_input(stdscr, r, c, prompt_string):
     curses.echo()
     stdscr.addstr(r, c, prompt_string)
     stdscr.refresh()
     input = stdscr.getstr(r + 2, c, 255)
+    curses.noecho()
     return input
-
-
-#######################################
-
-
-# Check to see if YouTube's auto play has kicked in
-def check_for_new_video(old_url, window, counter):
-
-    """
-    while True:
-        # Grab URL from current page
-        current_url = browser.current_url
-
-        # If the URL hasn't changed, wait and check again later
-        while current_url == old_url:
-            # Pause...take a deep breath
-            sleep(1)
-            # Reset URL to current page
-            current_url = browser.current_url
-
-    """
-    # Once the URL has changed, write down the record
-    get_current_video(window, counter)
-
-
-#######################################
-"""
-cmds:
-    r = Go back one song (back page)
-    n = Play next song (in auto play list)
-    q = Quit program
-    m = Switch to Mix of current song
-    s = Instigate new seach
-    l = Login
-    a = add to playlist
-"""
-def cmd_input(window):
-
-    # Get user input of single key stroke
-    user_input = window.getch()
-
-    # Play previous song
-    if user_input == 'r':
-
-        print('Let\'s go back one song...')
-
-        # browser.execute_script("window.history.go(-1)")
-        browser.back()
-
-        get_current_video()
-
-    # Play next song
-    elif user_input == 'n':
-
-        print('Let\'s hear the next song...')
-
-        next_song = \
-            browser.find_element_by_xpath()
-
-        next_song.click()
-
-        get_current_video()
-
-    # Quit application
-    elif user_input == 'q':
-
-        browser.close()
-        sys.exit("Quiting...")
-
-    # Switch to YouTube Mix option
-    elif user_input == 'm':
-
-        mix_list_option = browser.find_element_by_xpath(
-                '//*[@id="watch-related"]/li[1]/a')
-
-        mix_list_option.click()
-
-        get_current_video()
-
-    # elif user_input == 's'
-
-        # instigate new search with search
 
 
 #######################################
@@ -220,7 +260,7 @@ def main(screen):
 
     try:
         os.system('clear')
-        
+
         # Add initial formatting
         screen.addstr(" HEADLESS RADIO", curses.A_REVERSE)
         screen.chgat(-1, curses.A_REVERSE)
@@ -238,7 +278,7 @@ def main(screen):
 
         args = parser.parse_args()
 
-        # Check that parameters were entered and are valid.  
+        # Check that parameters were entered and are valid.
         # If no search string arg, get from user
         if not args.search_string:
             args.search_string = str(get_raw_input(
@@ -297,9 +337,21 @@ def main(screen):
         screen.chgat(-1, curses.A_REVERSE)
         screen.refresh()
 
+        cmdIn = CmdInput(prompt_queue, screen)
+        getCurrentVid = GetCurrentVideo(prompt_queue)
+        prompt_printer = WindowQueuePrinter(prompt_queue, window_history)
+
+        cmdIn.Name = 'CmdIn'
+        getCurrentVid.Name = 'getCurrentVid'
+        prompt_printer.Name = 'prompt_printer'
+
+        prompt_printer.start()
+        getCurrentVid.start()
+        cmdIn.start()
+
+        # Allow the program to "run forever"
         while True:
-            for i in range(100):
-                check_for_new_video(browser.current_url, window_history, i)
+            sleep(1)
 
         # If YouTube isn't responding, quit and tell user
     except urllib.error.HTTPError as e:
@@ -324,4 +376,3 @@ def main(screen):
 if __name__ == "__main__":
 
     curses.wrapper(main)
-
