@@ -145,7 +145,7 @@ class GetCurrentVideo(Thread):
 
             while current_url == previous_url:
 
-                sleep(3)
+                sleep(1)
 
                 current_url = browser.current_url
 
@@ -163,6 +163,7 @@ class GetCurrentVideo(Thread):
                     .format(strftime("%H:%M:%S"), video_name)
 
             is_first_print = False
+            previous_url = current_url
 
             self.queue.put(update_string)
 
